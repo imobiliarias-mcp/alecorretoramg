@@ -1,5 +1,7 @@
 """Unit tests for search, detail, and metadata parsers."""
 
+import pytest
+
 from alecorretora_research.parsers.detail_parser import PropertyDetailParser
 from alecorretora_research.parsers.feature_extractor import CardFeatureExtractor
 from alecorretora_research.parsers.metadata_parser import MetadataParser
@@ -65,6 +67,93 @@ def test_search_parser_with_stubbed_json() -> None:
     assert item.bathrooms == 1
     assert item.area == "50m²"
     assert item.thumbnail_url == "https://alecorretoramg.com.br/sample.jpg"
+
+
+@pytest.mark.parametrize(
+    ("card_url", "expected_url"),
+    [
+        (
+            "https://alecorretoramg.com.br/imoveis/existing/",
+            "https://alecorretoramg.com.br/imoveis/existing/",
+        ),
+        (
+            "/imoveis/relative/",
+            "https://alecorretoramg.com.br/imoveis/relative/",
+        ),
+        (
+            "//alecorretoramg.com.br/imoveis/protocol-relative/",
+            "https://alecorretoramg.com.br/imoveis/protocol-relative/",
+        ),
+        ("?id=608", "https://alecorretoramg.com.br/?id=608"),
+    ],
+)
+def test_search_parser_resolves_card_urls(card_url: str, expected_url: str) -> None:
+    """Resolve absolute, relative, protocol-relative, and identifier links."""
+    card = SAMPLE_CARD_HTML.replace(
+        "https://alecorretoramg.com.br/imoveis/loja-comercial-8-2/", card_url
+    )
+    collection = SearchResponseParser().parse({"content": card})
+
+    assert collection[0].url == expected_url
+
+
+def test_search_parser_uses_injected_public_base_url() -> None:
+    """Resolve a relative card link against configured public, not API, origin."""
+    card = SAMPLE_CARD_HTML.replace(
+        "https://alecorretoramg.com.br/imoveis/loja-comercial-8-2/",
+        "/imoveis/configured/",
+    )
+    parser = SearchResponseParser(public_base_url="https://public.example/")
+
+    assert parser.parse({"content": card})[0].url == "https://public.example/imoveis/configured/"
+
+
+@pytest.mark.parametrize("card_url", ["javascript:alert(1)", ""])
+def test_search_parser_rejects_unrecoverable_card_url(card_url: str) -> None:
+    """Reject invalid or absent links with listing context."""
+    card = SAMPLE_CARD_HTML.replace(
+        "https://alecorretoramg.com.br/imoveis/loja-comercial-8-2/", card_url
+    )
+
+    with pytest.raises(ValueError, match="11217"):
+        SearchResponseParser().parse({"content": card})
+
+
+@pytest.mark.parametrize(
+    "card_url",
+    [
+        "https://bad host.example/imoveis/listing/",
+        "https://user:password@alecorretoramg.com.br/imoveis/listing/",
+        "https://alecorretoramg.com.br:invalid/imoveis/listing/",
+        "https://[invalid]/imoveis/listing/",
+        "https://alecorretoramg.com.br/wp-json/wp/v2/properties/11217",
+        "https://alecorretoramg.com.br/wp-content/uploads/photo.jpg",
+        "https://alecorretoramg.com.br/wp-admin/admin-ajax.php?action=jet_smart_filters",
+    ],
+)
+def test_search_parser_rejects_invalid_public_listing_urls(card_url: str) -> None:
+    """Reject malformed authorities and non-property endpoint URLs."""
+    card = SAMPLE_CARD_HTML.replace(
+        "https://alecorretoramg.com.br/imoveis/loja-comercial-8-2/", card_url
+    )
+
+    with pytest.raises(ValueError, match="11217"):
+        SearchResponseParser().parse({"content": card})
+
+
+@pytest.mark.parametrize(
+    "public_base_url",
+    [
+        "https://bad host.example/",
+        "https://user:password@public.example/",
+        "https://public.example:invalid/",
+        "https://[invalid]/",
+    ],
+)
+def test_search_parser_rejects_malformed_public_base(public_base_url: str) -> None:
+    """Reject malformed origin configuration before parsing listings."""
+    with pytest.raises(ValueError, match="public base URL"):
+        SearchResponseParser(public_base_url=public_base_url)
 
 
 def test_property_detail_parser() -> None:

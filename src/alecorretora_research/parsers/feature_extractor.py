@@ -2,17 +2,31 @@
 
 import re
 from typing import Any
+from urllib.parse import urljoin, urlsplit
 from bs4 import BeautifulSoup, Tag
 from alecorretora_research.domain.listing import ListingSummary
+
+
+PUBLIC_BASE_URL = "https://alecorretoramg.com.br/"
+IMAGE_FILE_SUFFIXES = (".jpg", ".jpeg", ".png", ".webp", ".gif")
+NON_PROPERTY_ROUTE_PREFIXES = ("/wp-json/", "/wp-admin/admin-ajax.php")
+
+
+class InvalidPropertyUrlError(ValueError):
+    """Raised when a search card has no safe, public property URL."""
 
 
 class CardFeatureExtractor:
     """Extracts domain listing summary attributes from card DOM elements."""
 
+    def __init__(self, public_base_url: str = PUBLIC_BASE_URL) -> None:
+        """Store the public portal origin used to resolve card URLs."""
+        self._public_base_url = self._validate_public_base_url(public_base_url)
+
     def extract(self, card: Tag) -> ListingSummary:
         """Parse card tag into ListingSummary."""
         post_id = card.get("data-post-id", "")
-        url = self._extract_url(card)
+        url = self._extract_url(card, post_id)
         thumb = self._extract_thumbnail(card)
         code = self._extract_code(card)
         purpose = self._extract_purpose(card)
@@ -39,13 +53,59 @@ class CardFeatureExtractor:
             thumbnail_url=thumb,
         )
 
-    def _extract_url(self, card: Tag) -> str:
-        """Extract property URL."""
+    def _extract_url(self, card: Tag, property_id: str) -> str:
+        """Resolve a card URL as a validated absolute public link."""
+        raw_url = self._get_raw_url(card)
+        if not raw_url:
+            raise InvalidPropertyUrlError(f"Listing {property_id} has no property URL.")
+        try:
+            absolute_url = urljoin(self._public_base_url, raw_url)
+        except ValueError as error:
+            raise InvalidPropertyUrlError(
+                f"Listing {property_id} has an invalid property URL: {raw_url!r}."
+            ) from error
+        if not self._is_valid_http_url(absolute_url):
+            raise InvalidPropertyUrlError(
+                f"Listing {property_id} has an invalid property URL: {raw_url!r}."
+            )
+        return absolute_url
+
+    def _get_raw_url(self, card: Tag) -> str:
+        """Return the property URL found in the card's overlay or link."""
         overlay = card.find(class_="jet-engine-listing-overlay-wrap")
         if overlay and overlay.get("data-url"):
-            return overlay.get("data-url", "")
-        link = card.find("a", href=lambda h: h and "/imoveis/" in h)
-        return link.get("href", "") if link else ""
+            return str(overlay.get("data-url", "")).strip()
+        link = card.find("a", href=lambda href: href and "/imoveis/" in href)
+        return str(link.get("href", "")).strip() if link else ""
+
+    def _validate_public_base_url(self, public_base_url: str) -> str:
+        """Reject invalid public origins before parsing search results."""
+        if not self._is_valid_http_url(public_base_url):
+            raise ValueError(f"Invalid public base URL: {public_base_url!r}.")
+        return f"{public_base_url.rstrip('/')}/"
+
+    def _is_valid_http_url(self, url: str) -> bool:
+        """Validate a public URL's authority and exclude known non-property links."""
+        try:
+            parsed_url = urlsplit(url)
+            hostname = parsed_url.hostname
+            port = parsed_url.port
+            username = parsed_url.username
+            password = parsed_url.password
+        except ValueError:
+            return False
+        path = parsed_url.path.lower()
+        return (
+            parsed_url.scheme.lower() in {"http", "https"}
+            and bool(hostname)
+            and username is None
+            and password is None
+            and not any(character.isspace() for character in parsed_url.netloc)
+            and not parsed_url.netloc.endswith(":")
+            and not path.startswith(NON_PROPERTY_ROUTE_PREFIXES)
+            and not path.endswith(IMAGE_FILE_SUFFIXES)
+            and (port is None or 0 <= port <= 65535)
+        )
 
     def _extract_thumbnail(self, card: Tag) -> str | None:
         """Extract background thumbnail image URL."""

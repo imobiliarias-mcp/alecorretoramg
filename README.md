@@ -35,6 +35,7 @@ client = AleCorretoraRentalClient()
 results = client.search_rentals(city_id="24", bedrooms=2)
 for item in results:
     print(f"[{item.property_id}] Ref: {item.code} | {item.title} | {item.price_formatted}")
+    print(f"Link: {item.url}")
 
 # 2. Get property detail and photo gallery
 detail = client.get_details("11217")

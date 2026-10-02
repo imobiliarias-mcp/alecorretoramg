@@ -1,7 +1,7 @@
 """Listing summary and first-class collection domain models."""
 
-from dataclasses import dataclass
-from typing import Iterator
+from dataclasses import asdict, dataclass
+from typing import Any, Iterator
 
 
 @dataclass(frozen=True)
@@ -22,6 +22,10 @@ class ListingSummary:
     parking_spaces: int | None
     area: str | None
     thumbnail_url: str | None
+
+    def to_dictionary(self) -> dict[str, Any]:
+        """Return every native listing field in a serializable dictionary."""
+        return asdict(self)
 
 
 class ListingCollection:
@@ -74,3 +78,13 @@ class ListingCollection:
     def is_empty(self) -> bool:
         """Check if collection contains no listings."""
         return len(self._listings) == 0
+
+    def to_dictionary(self) -> dict[str, Any]:
+        """Serialize listings without losing search counts or page state."""
+        return {
+            "listings": [item.to_dictionary() for item in self._listings],
+            "returned_count": len(self._listings),
+            "total_found": self._total_found,
+            "max_pages": self._max_pages,
+            "current_page": self._current_page,
+        }

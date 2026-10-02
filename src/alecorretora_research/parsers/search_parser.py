@@ -6,12 +6,19 @@ from alecorretora_research.domain.listing import ListingCollection, ListingSumma
 from alecorretora_research.parsers.feature_extractor import CardFeatureExtractor
 
 
+PUBLIC_BASE_URL = "https://alecorretoramg.com.br/"
+
+
 class SearchResponseParser:
     """Parses JetSmartFilters AJAX responses into ListingCollection."""
 
-    def __init__(self, extractor: CardFeatureExtractor | None = None) -> None:
-        """Initialize parser with card feature extractor collaborator."""
-        self._extractor = extractor or CardFeatureExtractor()
+    def __init__(
+        self,
+        extractor: CardFeatureExtractor | None = None,
+        public_base_url: str = PUBLIC_BASE_URL,
+    ) -> None:
+        """Initialize parser with an optional public website origin."""
+        self._extractor = extractor or CardFeatureExtractor(public_base_url)
 
     def parse(
         self,

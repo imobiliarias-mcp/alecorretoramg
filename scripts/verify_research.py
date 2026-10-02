@@ -24,6 +24,7 @@ def run_target_rental_search(client: AleCorretoraRentalClient) -> None:
     print(f"Total matching rentals found: {results.total_found}")
     for item in results:
         print(f"  [{item.property_id}] Ref: {item.code} | {item.title} | {item.price_formatted} | {item.neighborhood}, {item.city}")
+        print(f"    Link: {item.url}")
 
 
 def run_bedroom_filtered_search(client: AleCorretoraRentalClient) -> None:
@@ -33,6 +34,7 @@ def run_bedroom_filtered_search(client: AleCorretoraRentalClient) -> None:
     print(f"Total 2-bedroom rentals: {len(results)}")
     for item in results:
         print(f"  [{item.property_id}] Ref: {item.code} | {item.title} | {item.price_formatted}")
+        print(f"    Link: {item.url}")
 
 
 def run_price_range_search(client: AleCorretoraRentalClient) -> None:
@@ -42,6 +44,7 @@ def run_price_range_search(client: AleCorretoraRentalClient) -> None:
     print(f"Total rentals in price range: {len(results)}")
     for item in results:
         print(f"  [{item.property_id}] Ref: {item.code} | {item.title} | {item.price_formatted}")
+        print(f"    Link: {item.url}")
 
 
 def run_code_search(client: AleCorretoraRentalClient) -> None:
@@ -51,6 +54,7 @@ def run_code_search(client: AleCorretoraRentalClient) -> None:
     print(f"Total matching properties: {len(results)}")
     for item in results:
         print(f"  [{item.property_id}] Ref: {item.code} | {item.title} | {item.price_formatted}")
+        print(f"    Link: {item.url}")
 
 
 def run_detail_retrieval(client: AleCorretoraRentalClient) -> None:

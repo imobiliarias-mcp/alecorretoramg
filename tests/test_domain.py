@@ -123,6 +123,49 @@ def test_listing_collection_behavior() -> None:
     assert collection.is_empty() is False
 
 
+def test_listing_summary_and_collection_serialize_public_fields() -> None:
+    """Serialize listing fields and preserve pagination metadata."""
+    item = ListingSummary(
+        property_id="11217",
+        url="https://alecorretoramg.com.br/imoveis/loja/",
+        code="0473",
+        title="Loja",
+        purpose="Alugar",
+        property_type="Loja Comercial",
+        neighborhood="Garapa",
+        city="Timóteo",
+        price_formatted="R$ 700,00",
+        bedrooms=1,
+        bathrooms=1,
+        parking_spaces=None,
+        area="50m²",
+        thumbnail_url="https://alecorretoramg.com.br/thumb.jpg",
+    )
+    collection = ListingCollection(
+        listings=[item, item], total_found=4, max_pages=2, current_page=1
+    )
+
+    serialized = collection.to_dictionary()
+
+    assert len(serialized["listings"]) == 2
+    assert serialized["listings"][0]["url"] == item.url
+    assert serialized["listings"][0]["property_id"] == "11217"
+    assert serialized["listings"][0]["price_formatted"] == "R$ 700,00"
+    assert serialized["returned_count"] == 2
+    assert serialized["total_found"] == 4
+    assert serialized["max_pages"] == 2
+    assert serialized["current_page"] == 1
+
+
+def test_empty_listing_collection_serializes_zero_count() -> None:
+    """Serialize an empty collection without changing its current-page count."""
+    serialized = ListingCollection().to_dictionary()
+
+    assert serialized["listings"] == []
+    assert serialized["returned_count"] == 0
+    assert serialized["total_found"] == 0
+
+
 def test_photo_gallery_behavior() -> None:
     """Test photo gallery collection behavior."""
     gallery = PhotoGallery([" https://img1.jpg ", "https://img2.jpg", ""])

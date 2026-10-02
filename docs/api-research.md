@@ -142,6 +142,8 @@ Search result cards are rendered inside `content` with the CSS class `.jet-listi
 | `area` | Icon item containing `m²` | `50m²` |
 | `thumbnail_url` | Regex `background-image:url\(\"([^\"]+)\"\)` from `<style>` | `https://alecorretoramg.com.br/...` |
 
+The typed search result exposes `url` as an absolute HTTP(S) property page. Relative and protocol-relative card links are resolved against the public website origin `https://alecorretoramg.com.br/`; missing links, malformed authorities, WordPress API/search routes, and image files raise a listing-specific validation error. `ListingSummary.to_dictionary()` serializes all listing fields, while `ListingCollection.to_dictionary()` also retains returned, found, and pagination counts.
+
 ---
 
 ## 6. Property Detail Retrieval
