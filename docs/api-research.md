@@ -154,6 +154,7 @@ Search result cards are rendered inside `content` with the CSS class `.jet-listi
 
 ### 6.2 Detail Markup Selectors
 - **Title**: `h1.elementor-heading-title` (e.g. `Loja Comercial/Quitinete`).
+- **Transaction Purpose**: The `.jet-listing-dynamic-terms` field labelled `Finalidade:` supplies its `.jet-listing-dynamic-terms__link` text. Current-property taxonomy takes precedence over title/description keywords; related grids, headers, and footers are ignored. Missing purpose remains an empty string rather than defaulting to sale.
 - **Reference Code**: Regex `Código do Imóvel:\s*([A-Za-z0-9_-]+)` from headings (e.g. `0473`).
 - **Price**: `.jet-listing-dynamic-field` (e.g. `R$ 700,00`).
 - **Description**: `.elementor-widget-text-editor` text.

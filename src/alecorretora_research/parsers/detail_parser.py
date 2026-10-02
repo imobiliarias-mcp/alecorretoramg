@@ -2,13 +2,16 @@
 
 import re
 from typing import Any
+
 from bs4 import BeautifulSoup
+
 from alecorretora_research.domain.property import (
     PhotoGallery,
     PropertyDetail,
     PropertyLocation,
     PropertySpecs,
 )
+from alecorretora_research.parsers.detail_purpose_parser import extract_property_purpose
 
 
 class PropertyDetailParser:
@@ -35,7 +38,7 @@ class PropertyDetailParser:
             url=canonical_url,
             code=code,
             title=title,
-            purpose="Alugar" if "Alug" in title or "Alug" in desc else "Venda",
+            purpose=extract_property_purpose(soup, title, desc),
             price_formatted=price,
             description=desc,
             location=location,
@@ -71,14 +74,14 @@ class PropertyDetailParser:
 
     def _extract_location(self, soup: BeautifulSoup, desc: str) -> PropertyLocation:
         """Extract property location from description or address elements."""
-        match = re.search(r"bairro\s+([^,]+),\s*em\s+([^/]+)/([A-Z]{2})", desc, re.I)
+        match = re.search(r"bairro\s+([^,]+),\s*em\s+([^/]+)/([A-Z]{2})", desc, re.IGNORECASE)
         if match:
             return PropertyLocation(
                 neighborhood=match.group(1).strip(),
                 city=match.group(2).strip(),
                 state=match.group(3).strip(),
             )
-        match_simple = re.search(r"bairro\s+([A-Za-zÀ-ÿ\s]+)\s+em\s+([A-Za-zÀ-ÿ\s]+)", desc, re.I)
+        match_simple = re.search(r"bairro\s+([A-Za-zÀ-ÿ\s]+)\s+em\s+([A-Za-zÀ-ÿ\s]+)", desc, re.IGNORECASE)
         if match_simple:
             return PropertyLocation(
                 neighborhood=match_simple.group(1).strip(),
@@ -105,9 +108,7 @@ class PropertyDetailParser:
         """Determine if widget is inside header, footer, or similar listings."""
         if widget.find_parent(class_="jet-listing-grid"):
             return True
-        if widget.find_parent("header") or widget.find_parent("footer"):
-            return True
-        return False
+        return bool(widget.find_parent(["header", "footer"]))
 
     def _parse_icon_widget_items(self, widget: Any, specs_dict: dict[str, Any]) -> None:
         """Parse individual items within property icon list."""
