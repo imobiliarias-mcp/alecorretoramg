@@ -49,7 +49,7 @@ class AleCorretoraMcpAdapter:
         """Format individual listing item."""
         return {
             "id": getattr(item, "property_id", ""),
-            "code": getattr(item, "code", ""),
+            "code": getattr(item, "property_id", ""),
             "title": getattr(item, "title", ""),
             "price": getattr(item, "price_formatted", ""),
             "url": getattr(item, "url", ""),

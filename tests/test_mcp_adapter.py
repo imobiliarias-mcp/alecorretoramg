@@ -63,3 +63,26 @@ def test_mcp_adapter_property_detail():
     detail = adapter.get_property_detail("AP001")
     assert isinstance(detail, dict)
     assert detail["title"] == "Apartamento Centro"
+
+
+def test_search_listing_code_is_the_id_accepted_by_detail():
+    """The detail lookup needs the property id, not the card's display reference."""
+
+    class SearchItem:
+        property_id = "11320"
+        code = "0479"
+        title = "Sala comercial"
+        price_formatted = "R$ 600"
+        url = "https://alecorretoramg.com.br/imoveis/11310-2/"
+
+        class location:
+            neighborhood = "Centro"
+            city = "Coronel Fabriciano"
+
+    class SearchClient(DummyClient):
+        def search_rentals(self, **kwargs):
+            return [SearchItem()]
+
+    listing = AleCorretoraMcpAdapter(client=SearchClient()).search_rentals(city="Timóteo")["listings"][0]
+    assert listing["code"] == "11320"
+    assert listing["id"] == "11320"
